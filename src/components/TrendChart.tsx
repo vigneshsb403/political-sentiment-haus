@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, 
   Legend, ResponsiveContainer, AreaChart, Area 
@@ -7,22 +6,8 @@ import {
 import { motion } from 'framer-motion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-
-// Sample data
-const trendData = [
-  { date: 'Jan', positive: 30, negative: 40, neutral: 30 },
-  { date: 'Feb', positive: 40, negative: 30, neutral: 30 },
-  { date: 'Mar', positive: 45, negative: 25, neutral: 30 },
-  { date: 'Apr', positive: 25, negative: 45, neutral: 30 },
-  { date: 'May', positive: 38, negative: 32, neutral: 30 },
-  { date: 'Jun', positive: 50, negative: 25, neutral: 25 },
-  { date: 'Jul', positive: 55, negative: 20, neutral: 25 },
-  { date: 'Aug', positive: 65, negative: 15, neutral: 20 },
-  { date: 'Sep', positive: 60, negative: 20, neutral: 20 },
-  { date: 'Oct', positive: 50, negative: 30, neutral: 20 },
-  { date: 'Nov', positive: 55, negative: 25, neutral: 20 },
-  { date: 'Dec', positive: 60, negative: 15, neutral: 25 }
-];
+import { fetchHistoricalSentiment } from '@/lib/redditApi';
+import { Loader2 } from 'lucide-react';
 
 type ChartType = 'line' | 'area';
 
@@ -38,8 +23,44 @@ const TrendChart: React.FC<TrendChartProps> = ({
   className
 }) => {
   const [chartType, setChartType] = useState<ChartType>('line');
+  const [trendData, setTrendData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const data = await fetchHistoricalSentiment();
+        setTrendData(data);
+      } catch (err) {
+        console.error('Error fetching trend data:', err);
+        setError('Failed to load trend data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const renderChart = () => {
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="flex items-center justify-center h-full text-red-500">
+          {error}
+        </div>
+      );
+    }
+
     if (chartType === 'line') {
       return (
         <LineChart
@@ -99,7 +120,10 @@ const TrendChart: React.FC<TrendChartProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h3 className="text-lg font-medium">{title}</h3>
-          <p className="text-sm text-muted-foreground">{description}</p>
+          <p className="text-sm text-muted-foreground">
+            {description}
+            {loading && " (Loading...)"}
+          </p>
         </div>
         <div className="w-full sm:w-40">
           <Select value={chartType} onValueChange={(value) => setChartType(value as ChartType)}>

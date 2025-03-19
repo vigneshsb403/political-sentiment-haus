@@ -1,69 +1,109 @@
-# Welcome to your Lovable project
+# Political Sentiment Haus
 
-## Project info
+A real-time political sentiment analysis dashboard that visualizes sentiment trends from Reddit's r/politics community.
 
-**URL**: https://lovable.dev/projects/ef50e904-87bc-4550-9765-93bf90a37e30
+## Features
 
-## How can I edit this code?
+- **Real-time Sentiment Analysis**: Analyzes posts from r/politics subreddit to determine positive, negative, and neutral sentiments
+- **Historical Trend Visualization**: Displays sentiment trends over the past year using interactive charts
+- **Multiple Visualization Styles**: 
+  - Line Chart: Shows trend lines for each sentiment type
+  - Area Chart: Displays stacked areas representing sentiment distribution
+- **Responsive Design**: Fully responsive UI that works across all device sizes
+- **Modern UI/UX**: Built with shadcn-ui components and smooth animations
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- **Frontend Framework**: React with TypeScript
+- **Build Tool**: Vite
+- **Styling**: Tailwind CSS
+- **UI Components**: shadcn-ui
+- **Charts**: Recharts
+- **Animations**: Framer Motion
+- **API Integration**: Reddit JSON API
+- **HTTP Client**: Axios
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/ef50e904-87bc-4550-9765-93bf90a37e30) and start prompting.
+## Prerequisites
 
-Changes made via Lovable will be committed automatically to this repo.
+Before running this project, make sure you have:
 
-**Use your preferred IDE**
+- Node.js (v16 or higher)
+- npm (v7 or higher)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Getting Started
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd political-sentiment-haus
+```
 
-Follow these steps:
+2. Install dependencies:
+```bash
+npm install
+```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+3. Create a `.env` file in the root directory with the following variables:
+```env
+VITE_REDDIT_CLIENT_ID=your_reddit_client_id
+VITE_REDDIT_CLIENT_SECRET=your_reddit_client_secret
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+4. Start the development server:
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The application will be available at `http://localhost:5173`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Features in Detail
 
-**Use GitHub Codespaces**
+### Sentiment Analysis
+- Analyzes Reddit posts using a combination of:
+  - Post scores (upvotes/downvotes)
+  - Content analysis
+  - Historical data comparison
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Trend Visualization
+- Monthly sentiment breakdowns
+- Interactive tooltips with detailed information
+- Customizable chart types
+- Smooth animations and transitions
 
-## What technologies are used for this project?
+### Data Processing
+- Groups posts by month
+- Calculates sentiment percentages
+- Handles loading and error states
+- Real-time data updates
 
-This project is built with .
+## Project Structure
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```
+src/
+├── components/         # React components
+│   ├── TrendChart.tsx # Main chart component
+│   └── ui/            # UI components
+├── lib/
+│   ├── redditApi.ts   # Reddit API integration
+│   └── utils.ts       # Utility functions
+└── ...
+```
 
-## How can I deploy this project?
+## Contributing
 
-Simply open [Lovable](https://lovable.dev/projects/ef50e904-87bc-4550-9765-93bf90a37e30) and click on Share -> Publish.
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## I want to use a custom domain - is that possible?
+## License
 
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- Reddit API for providing the data
+- shadcn-ui for the beautiful components
+- Recharts for the charting library
+- The open-source community for their invaluable tools and libraries

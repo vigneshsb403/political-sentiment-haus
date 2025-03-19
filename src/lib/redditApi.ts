@@ -28,59 +28,149 @@ export const fetchPoliticalPosts = async (subreddit: string = 'politics', limit:
 export const analyzeTextSentiment = async (text: string) => {
   try {
     const posts = await fetchPoliticalPosts('politics', 100);
-    const similarPosts = posts.filter(post => 
-      post.title.toLowerCase().includes(text.toLowerCase()) ||
-      post.selftext?.toLowerCase().includes(text.toLowerCase())
-    );
+    
+    // Find posts with similar content
+    const similarPosts = posts.filter(post => {
+      const postText = (post.title + ' ' + (post.selftext || '')).toLowerCase();
+      const inputWords = text.toLowerCase().split(/\s+/);
+      // Count how many words from the input appear in the post
+      const matchingWords = inputWords.filter(word => word.length > 3 && postText.includes(word)).length;
+      // Consider it similar if at least 2 significant words match
+      return matchingWords >= 2;
+    });
 
-    // Calculate sentiment based on post scores and content
-    let sentiment: 'positive' | 'negative' | 'neutral' = 'neutral';
-    let score = 0.5;
-
-    if (similarPosts.length > 0) {
-      const avgScore = similarPosts.reduce((acc, post) => acc + post.score, 0) / similarPosts.length;
-      if (avgScore > 1000) {
-        sentiment = 'positive';
-        score = 0.8;
-      } else if (avgScore < -100) {
-        sentiment = 'negative';
-        score = 0.2;
-      }
+    // If no similar posts found, analyze the text directly
+    if (similarPosts.length === 0) {
+      // Simple keyword-based sentiment analysis
+      const positiveWords = ['good', 'great', 'excellent', 'positive', 'progress', 'success', 'benefit', 'support', 'improve', 'advantage'];
+      const negativeWords = ['bad', 'poor', 'negative', 'fail', 'crisis', 'problem', 'threat', 'oppose', 'worse', 'disaster'];
+      
+      const words = text.toLowerCase().split(/\s+/);
+      const positiveCount = words.filter(word => positiveWords.includes(word)).length;
+      const negativeCount = words.filter(word => negativeWords.includes(word)).length;
+      
+      const sentiment = positiveCount > negativeCount ? 'positive' : 
+                       negativeCount > positiveCount ? 'negative' : 'neutral';
+      const score = Math.max(0.5, (Math.abs(positiveCount - negativeCount) + 1) / (words.length + 1));
+      
+      return {
+        sentiment: sentiment as 'positive' | 'negative' | 'neutral',
+        score,
+        aspects: analyzeAspects(text, [])
+      };
     }
 
-    // Analyze aspects based on keywords
-    const aspects = [
-      { topic: 'Economy', keywords: ['economy', 'jobs', 'tax', 'business'] },
-      { topic: 'Healthcare', keywords: ['health', 'medical', 'insurance', 'care'] },
-      { topic: 'Foreign Policy', keywords: ['foreign', 'international', 'diplomatic', 'trade'] }
-    ].map(({ topic, keywords }) => {
-      const topicPosts = similarPosts.filter(post => 
-        keywords.some(keyword => 
-          post.title.toLowerCase().includes(keyword) ||
-          post.selftext?.toLowerCase().includes(keyword)
-        )
-      );
+    // Calculate overall sentiment based on similar posts
+    const totalScore = similarPosts.reduce((acc, post) => acc + post.score, 0);
+    const avgScore = totalScore / similarPosts.length;
+    
+    let sentiment: 'positive' | 'negative' | 'neutral';
+    let score: number;
 
-      const topicScore = topicPosts.length > 0
-        ? topicPosts.reduce((acc, post) => acc + post.score, 0) / topicPosts.length
-        : 0;
-
-      return {
-        topic,
-        sentiment: topicScore > 1000 ? 'positive' : topicScore < -100 ? 'negative' : 'neutral',
-        score: topicScore > 1000 ? 0.8 : topicScore < -100 ? 0.2 : 0.5
-      };
-    });
+    if (avgScore > 1000) {
+      sentiment = 'positive';
+      score = Math.min(0.9, (avgScore - 1000) / 9000 + 0.6);
+    } else if (avgScore < -100) {
+      sentiment = 'negative';
+      score = Math.min(0.9, Math.abs(avgScore + 100) / 900 + 0.6);
+    } else {
+      sentiment = 'neutral';
+      score = 0.5 + Math.abs(avgScore) / 2000;
+    }
 
     return {
       sentiment,
       score,
-      aspects
+      aspects: analyzeAspects(text, similarPosts)
     };
   } catch (error) {
     console.error('Error analyzing sentiment:', error);
     throw error;
   }
+};
+
+// Helper function to analyze aspects
+const analyzeAspects = (text: string, similarPosts: any[]) => {
+  const aspects = [
+    {
+      topic: 'Economy',
+      keywords: ['economy', 'economic', 'jobs', 'unemployment', 'tax', 'taxes', 'business', 'market', 'inflation', 'wage', 'debt'],
+      positiveWords: ['growth', 'recovery', 'boost', 'gain', 'profit', 'increase', 'improve'],
+      negativeWords: ['recession', 'crisis', 'decline', 'loss', 'deficit', 'crash', 'inflation']
+    },
+    {
+      topic: 'Healthcare',
+      keywords: ['health', 'healthcare', 'medical', 'insurance', 'hospital', 'medicare', 'medicaid', 'doctors', 'patient'],
+      positiveWords: ['improve', 'access', 'affordable', 'coverage', 'care', 'benefit', 'support'],
+      negativeWords: ['cost', 'expensive', 'crisis', 'problem', 'issue', 'lack', 'deny']
+    },
+    {
+      topic: 'Foreign Policy',
+      keywords: ['foreign', 'international', 'diplomatic', 'trade', 'military', 'war', 'treaty', 'alliance', 'global'],
+      positiveWords: ['peace', 'cooperation', 'agreement', 'ally', 'support', 'partnership', 'diplomacy'],
+      negativeWords: ['war', 'conflict', 'tension', 'threat', 'crisis', 'dispute', 'hostile']
+    }
+  ];
+
+  return aspects.map(aspect => {
+    // Check if the text contains keywords related to this aspect
+    const hasKeywords = aspect.keywords.some(keyword => 
+      text.toLowerCase().includes(keyword)
+    );
+
+    if (!hasKeywords) {
+      return {
+        topic: aspect.topic,
+        sentiment: 'neutral' as 'positive' | 'negative' | 'neutral',
+        score: 0.5
+      };
+    }
+
+    // Analyze sentiment for this aspect
+    const words = text.toLowerCase().split(/\s+/);
+    const positiveCount = words.filter(word => aspect.positiveWords.includes(word)).length;
+    const negativeCount = words.filter(word => aspect.negativeWords.includes(word)).length;
+
+    // Also consider similar posts if available
+    let postsSentiment = 0;
+    if (similarPosts.length > 0) {
+      const relevantPosts = similarPosts.filter(post => 
+        aspect.keywords.some(keyword => 
+          post.title.toLowerCase().includes(keyword) ||
+          (post.selftext && post.selftext.toLowerCase().includes(keyword))
+        )
+      );
+
+      if (relevantPosts.length > 0) {
+        const avgScore = relevantPosts.reduce((acc, post) => acc + post.score, 0) / relevantPosts.length;
+        postsSentiment = avgScore > 1000 ? 1 : avgScore < -100 ? -1 : 0;
+      }
+    }
+
+    // Combine direct text analysis with similar posts sentiment
+    const textSentiment = positiveCount > negativeCount ? 1 : negativeCount > positiveCount ? -1 : 0;
+    const combinedSentiment = (textSentiment + (postsSentiment * 2)) / 3; // Weight posts sentiment more
+
+    let sentiment: 'positive' | 'negative' | 'neutral';
+    let score: number;
+
+    if (combinedSentiment > 0.3) {
+      sentiment = 'positive';
+      score = 0.5 + (combinedSentiment * 0.4);
+    } else if (combinedSentiment < -0.3) {
+      sentiment = 'negative';
+      score = 0.5 + (Math.abs(combinedSentiment) * 0.4);
+    } else {
+      sentiment = 'neutral';
+      score = 0.5 + (Math.abs(combinedSentiment) * 0.2);
+    }
+
+    return {
+      topic: aspect.topic,
+      sentiment,
+      score: Math.min(0.95, score)
+    };
+  });
 };
 
 // Function to search political posts
@@ -170,20 +260,142 @@ const generateSentimentTrend = (posts: any[]) => {
 
 // Helper function to generate topic data
 const generateTopicData = (posts: any[]) => {
-  const topics = ['Economy', 'Healthcare', 'Climate Policy', 'Education', 'Immigration', 'Foreign Policy'];
-  return topics.map((topic) => {
-    const topicPosts = posts.filter((post) =>
-      post.title.toLowerCase().includes(topic.toLowerCase())
+  const topics = [
+    { name: 'Economy', keywords: ['economy', 'economic', 'jobs', 'unemployment', 'tax', 'taxes', 'business', 'market', 'inflation'] },
+    { name: 'Healthcare', keywords: ['health', 'healthcare', 'medical', 'insurance', 'hospital', 'medicare', 'medicaid', 'doctors'] },
+    { name: 'Climate Policy', keywords: ['climate', 'environment', 'environmental', 'green', 'renewable', 'carbon', 'emissions'] },
+    { name: 'Education', keywords: ['education', 'school', 'student', 'college', 'university', 'teacher', 'learning'] },
+    { name: 'Immigration', keywords: ['immigration', 'immigrant', 'border', 'migrant', 'visa', 'asylum'] },
+    { name: 'Foreign Policy', keywords: ['foreign', 'international', 'diplomatic', 'trade', 'military', 'war', 'treaty'] }
+  ];
+
+  return topics.map(({ name, keywords }) => {
+    // Find posts related to this topic using keywords
+    const topicPosts = posts.filter(post =>
+      keywords.some(keyword =>
+        post.title.toLowerCase().includes(keyword) ||
+        (post.selftext && post.selftext.toLowerCase().includes(keyword))
+      )
     );
-    const total = topicPosts.length || 1;
-    const positiveCount = topicPosts.filter((post) => post.score > 1000).length;
-    const percentage = (positiveCount / total) * 100;
+
+    if (topicPosts.length === 0) {
+      return {
+        topic: name,
+        sentiment: 'neutral',
+        percentage: 50,
+        change: 0
+      };
+    }
+
+    // Calculate sentiment based on post scores
+    const sentimentCounts = {
+      positive: 0,
+      negative: 0,
+      neutral: 0
+    };
+
+    topicPosts.forEach(post => {
+      if (post.score > 1000) {
+        sentimentCounts.positive++;
+      } else if (post.score < -100) {
+        sentimentCounts.negative++;
+      } else {
+        sentimentCounts.neutral++;
+      }
+    });
+
+    const total = topicPosts.length;
+    const positivePercentage = (sentimentCounts.positive / total) * 100;
+    const negativePercentage = (sentimentCounts.negative / total) * 100;
+
+    // Calculate weighted score based on upvotes
+    const avgScore = topicPosts.reduce((acc, post) => acc + post.score, 0) / total;
+    const normalizedScore = Math.min(Math.max((avgScore + 1000) / 2000 * 100, 0), 100);
+
+    // Calculate sentiment change (comparing with older posts)
+    const now = Date.now() / 1000; // current time in seconds
+    const dayAgo = now - 24 * 60 * 60; // 24 hours ago
     
+    const recentPosts = topicPosts.filter(post => post.created_utc > dayAgo);
+    const olderPosts = topicPosts.filter(post => post.created_utc <= dayAgo);
+    
+    let change = 0;
+    if (recentPosts.length > 0 && olderPosts.length > 0) {
+      const recentAvg = recentPosts.reduce((acc, post) => acc + post.score, 0) / recentPosts.length;
+      const olderAvg = olderPosts.reduce((acc, post) => acc + post.score, 0) / olderPosts.length;
+      change = Math.round(((recentAvg - olderAvg) / Math.abs(olderAvg || 1)) * 100);
+      // Limit change to reasonable range
+      change = Math.min(Math.max(change, -5), 5);
+    }
+
     return {
-      topic,
-      sentiment: percentage > 60 ? 'positive' : percentage < 40 ? 'negative' : 'neutral',
-      percentage: Math.round(percentage),
-      change: Math.floor(Math.random() * 10) - 5, // Placeholder for change calculation
+      topic: name,
+      sentiment: positivePercentage > negativePercentage ? 'positive' : negativePercentage > positivePercentage ? 'negative' : 'neutral',
+      percentage: Math.round(normalizedScore),
+      change
     };
   });
+};
+
+// Function to fetch historical sentiment data
+export const fetchHistoricalSentiment = async () => {
+  try {
+    // Fetch posts from different time periods using Reddit's API
+    const response = await axios.get(`${REDDIT_API_BASE_URL}/r/politics/top.json`, {
+      params: {
+        limit: 100,
+        t: 'year', // Get top posts from the past year
+      },
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const posts = response.data.data.children.map((post: any) => post.data);
+    
+    // Group posts by month
+    const monthlyData = new Map();
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    posts.forEach(post => {
+      const date = new Date(post.created_utc * 1000);
+      const monthKey = months[date.getMonth()];
+      
+      if (!monthlyData.has(monthKey)) {
+        monthlyData.set(monthKey, {
+          positive: 0,
+          negative: 0,
+          neutral: 0,
+          total: 0
+        });
+      }
+
+      const data = monthlyData.get(monthKey);
+      data.total++;
+
+      if (post.score > 1000) {
+        data.positive++;
+      } else if (post.score < -100) {
+        data.negative++;
+      } else {
+        data.neutral++;
+      }
+    });
+
+    // Convert to percentage and format data
+    const trendData = months.map(month => {
+      const data = monthlyData.get(month) || { positive: 0, negative: 0, neutral: 0, total: 1 };
+      return {
+        date: month,
+        positive: (data.positive / data.total) * 100,
+        negative: (data.negative / data.total) * 100,
+        neutral: (data.neutral / data.total) * 100
+      };
+    });
+
+    return trendData;
+  } catch (error) {
+    console.error('Error fetching historical sentiment:', error);
+    throw error;
+  }
 }; 

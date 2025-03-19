@@ -21,7 +21,6 @@ const Navbar = () => {
   const navItems = [
     { name: 'Home', path: '/', icon: <Home size={18} /> },
     { name: 'Analysis', path: '/analysis', icon: <Search size={18} /> },
-    { name: 'Trends', path: '/trends', icon: <BarChart2 size={18} /> }
   ];
 
   return (
