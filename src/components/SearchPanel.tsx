@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Filter, ArrowRight, Loader2 } from 'lucide-react';
@@ -7,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { searchPoliticalPosts } from '@/lib/redditApi';
 
 interface SearchResult {
   id: string;
@@ -17,84 +17,34 @@ interface SearchResult {
   score: number;
 }
 
-// Mock search results
-const mockResults: SearchResult[] = [
-  {
-    id: '1',
-    text: "The new economic policy will create thousands of jobs and boost small businesses across the country.",
-    source: "Twitter",
-    date: "2023-06-15",
-    sentiment: "positive",
-    score: 0.82
-  },
-  {
-    id: '2',
-    text: "Healthcare reform is failing our most vulnerable citizens and costs are skyrocketing.",
-    source: "Reddit",
-    date: "2023-06-10",
-    sentiment: "negative",
-    score: 0.75
-  },
-  {
-    id: '3',
-    text: "The tax plan includes both benefits and drawbacks for middle-class families.",
-    source: "Facebook",
-    date: "2023-06-05",
-    sentiment: "neutral",
-    score: 0.65
-  },
-  {
-    id: '4',
-    text: "Environmental regulations are stifling innovation and hurting our economy.",
-    source: "Reddit",
-    date: "2023-06-02",
-    sentiment: "negative",
-    score: 0.68
-  },
-  {
-    id: '5',
-    text: "Education investment is showing promising results with increased graduation rates.",
-    source: "Twitter",
-    date: "2023-05-28",
-    sentiment: "positive",
-    score: 0.79
-  }
-];
-
 const SearchPanel = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [platform, setPlatform] = useState('all');
-  const [sentiment, setSentiment] = useState('all');
+  const [sentiment, setSentiment] = useState<'all' | 'positive' | 'negative' | 'neutral'>('all');
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!searchTerm.trim()) return;
     
     setIsSearching(true);
+    setError(null);
     
-    // Simulate API call with timeout
-    setTimeout(() => {
-      // Filter mock results based on filters
-      let filtered = [...mockResults];
-      
-      if (platform !== 'all') {
-        filtered = filtered.filter(result => 
-          result.source.toLowerCase() === platform.toLowerCase()
-        );
-      }
-      
-      if (sentiment !== 'all') {
-        filtered = filtered.filter(result => 
-          result.sentiment === sentiment
-        );
-      }
-      
-      setResults(filtered);
+    try {
+      const searchResults = await searchPoliticalPosts(
+        searchTerm,
+        sentiment === 'all' ? undefined : sentiment
+      );
+      setResults(searchResults);
+    } catch (error) {
+      console.error('Search error:', error);
+      setError('Failed to search posts. Please try again.');
+    } finally {
       setIsSearching(false);
       setHasSearched(true);
-    }, 1000);
+    }
   };
 
   const getSentimentClass = (sentiment: 'positive' | 'negative' | 'neutral') => {
@@ -120,7 +70,7 @@ const SearchPanel = () => {
           <div className="text-center mb-10">
             <h2 className="text-3xl font-semibold mb-4">Search Political Sentiments</h2>
             <p className="text-muted-foreground">
-              Search for political statements and analyze sentiment patterns across social media platforms.
+              Search for political statements and analyze sentiment patterns from Reddit.
             </p>
           </div>
 
@@ -138,21 +88,7 @@ const SearchPanel = () => {
                 />
               </div>
               <div className="flex gap-3">
-                <Select value={platform} onValueChange={setPlatform}>
-                  <SelectTrigger className="w-[140px]">
-                    <div className="flex items-center gap-2">
-                      <Filter size={16} />
-                      <SelectValue placeholder="Platform" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Platforms</SelectItem>
-                    <SelectItem value="twitter">Twitter</SelectItem>
-                    <SelectItem value="reddit">Reddit</SelectItem>
-                    <SelectItem value="facebook">Facebook</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={sentiment} onValueChange={setSentiment}>
+                <Select value={sentiment} onValueChange={(value: 'all' | 'positive' | 'negative' | 'neutral') => setSentiment(value)}>
                   <SelectTrigger className="w-[140px]">
                     <SelectValue placeholder="Sentiment" />
                   </SelectTrigger>
@@ -178,6 +114,17 @@ const SearchPanel = () => {
               ) : 'Search'}
             </Button>
           </div>
+
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="glass-panel rounded-xl p-6 md:p-8 mb-8 bg-red-500/10 text-red-500"
+            >
+              {error}
+            </motion.div>
+          )}
 
           {hasSearched && (
             <motion.div

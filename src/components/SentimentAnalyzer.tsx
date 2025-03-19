@@ -1,10 +1,10 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, CheckCircle2, AlertTriangle, HelpCircle, MessageSquare } from 'lucide-react';
+import { analyzeTextSentiment } from '@/lib/redditApi';
 
 type SentimentResult = {
   sentiment: 'positive' | 'negative' | 'neutral';
@@ -16,49 +16,23 @@ type SentimentResult = {
   }[];
 };
 
-const mockAnalyze = (text: string): Promise<SentimentResult> => {
-  // This is a mock function that would be replaced with an actual API call
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // Simple mock analysis - in a real app, this would come from the backend
-      let sentiment: 'positive' | 'negative' | 'neutral' = 'neutral';
-      let score = 0.5;
-      
-      if (text.toLowerCase().includes('great') || text.toLowerCase().includes('good') || text.toLowerCase().includes('like')) {
-        sentiment = 'positive';
-        score = 0.8;
-      } else if (text.toLowerCase().includes('bad') || text.toLowerCase().includes('terrible') || text.toLowerCase().includes('hate')) {
-        sentiment = 'negative';
-        score = 0.2;
-      }
-      
-      resolve({
-        sentiment,
-        score,
-        aspects: [
-          { topic: 'Economy', sentiment: text.includes('economy') ? 'positive' : 'neutral', score: 0.65 },
-          { topic: 'Healthcare', sentiment: text.includes('health') ? 'negative' : 'neutral', score: 0.4 },
-          { topic: 'Foreign Policy', sentiment: text.includes('foreign') ? 'positive' : 'neutral', score: 0.72 }
-        ]
-      });
-    }, 1500); // Simulate API delay
-  });
-};
-
 const SentimentAnalyzer = () => {
   const [text, setText] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<SentimentResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleAnalyze = async () => {
     if (!text.trim()) return;
     
     setIsAnalyzing(true);
+    setError(null);
     try {
-      const result = await mockAnalyze(text);
+      const result = await analyzeTextSentiment(text);
       setResult(result);
     } catch (error) {
       console.error('Analysis error:', error);
+      setError('Failed to analyze sentiment. Please try again.');
     } finally {
       setIsAnalyzing(false);
     }
@@ -131,6 +105,17 @@ const SentimentAnalyzer = () => {
               </Button>
             </div>
           </div>
+
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="glass-panel rounded-xl p-6 md:p-8 mb-8 bg-red-500/10 text-red-500"
+            >
+              {error}
+            </motion.div>
+          )}
 
           {result && (
             <motion.div
