@@ -31,7 +31,7 @@ const Index = () => {
             </p>
           </motion.div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -48,27 +48,6 @@ const Index = () => {
               <Link to="/analysis">
                 <Button variant="ghost" className="gap-1">
                   Try it now
-                  <ArrowRight size={16} />
-                </Button>
-              </Link>
-            </motion.div>
-            
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="glass-panel rounded-xl p-6 text-center"
-            >
-              <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-6">
-                <BarChart2 size={20} />
-              </div>
-              <h3 className="text-xl font-medium mb-3">Trend Visualization</h3>
-              <p className="text-muted-foreground mb-6">
-                Track sentiment trends over time with interactive visualizations and charts.
-              </p>
-              <Link to="/trends">
-                <Button variant="ghost" className="gap-1">
-                  View trends
                   <ArrowRight size={16} />
                 </Button>
               </Link>
@@ -115,11 +94,6 @@ const Index = () => {
                   <div className="flex flex-col sm:flex-row gap-4">
                     <Link to="/analysis">
                       <Button className="w-full sm:w-auto px-6 rounded-full">Get Started</Button>
-                    </Link>
-                    <Link to="/trends">
-                      <Button variant="outline" className="w-full sm:w-auto px-6 rounded-full">
-                        Explore Trends
-                      </Button>
                     </Link>
                   </div>
                 </motion.div>

@@ -52,12 +52,6 @@ const Hero = () => {
               Start analyzing
               <ArrowRight size={18} />
             </Link>
-            <Link
-              to="/trends"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-secondary text-foreground font-medium hover:bg-secondary/70 transition-all"
-            >
-              View trends
-            </Link>
           </motion.div>
         </div>
 
